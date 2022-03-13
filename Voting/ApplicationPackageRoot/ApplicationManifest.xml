@@ -9,15 +9,15 @@
     <Parameter Name="MyWebAPI_PortNumber" DefaultValue="8080" />
   </Parameters>
   <ServiceManifestImport>
-    <ServiceManifestRef ServiceManifestName="VoterPkg" ServiceManifestVersion="1.0.0" />
+    <ServiceManifestRef ServiceManifestName="VoterPkg" ServiceManifestVersion="1.0.1" />
     <ConfigOverrides />
   </ServiceManifestImport>
   <ServiceManifestImport>
-    <ServiceManifestRef ServiceManifestName="VotingDataPkg" ServiceManifestVersion="1.0.2" />
+    <ServiceManifestRef ServiceManifestName="VotingDataPkg" ServiceManifestVersion="1.0.3" />
     <ConfigOverrides />
   </ServiceManifestImport>
   <ServiceManifestImport>
-    <ServiceManifestRef ServiceManifestName="VotingWebPkg" ServiceManifestVersion="1.0.3" />
+    <ServiceManifestRef ServiceManifestName="VotingWebPkg" ServiceManifestVersion="1.0.5" />
     <ConfigOverrides />
     <Policies>
       <RunAsPolicy CodePackageRef="Code" UserRef="SetupAdminUser" EntryPointType="Setup" />
