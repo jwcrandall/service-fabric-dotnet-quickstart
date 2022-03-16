@@ -7,6 +7,7 @@ namespace VotingData
 {
     using System;
     using System.Diagnostics;
+    using System.Fabric.Description;
     using System.Threading;
     using Microsoft.ServiceFabric.Services.Runtime;
 
@@ -17,6 +18,32 @@ namespace VotingData
         /// </summary>
         private static void Main()
         {
+            StatefulServiceDescription serviceDescription = new StatefulServiceDescription();
+
+            StatefulServiceLoadMetricDescription primaryCountMetric = new StatefulServiceLoadMetricDescription();
+            primaryCountMetric.Name = "PrimaryCount";
+            primaryCountMetric.PrimaryDefaultLoad = 1;
+            primaryCountMetric.SecondaryDefaultLoad = 0;
+            primaryCountMetric.Weight = ServiceLoadMetricWeight.Medium;
+
+            StatefulServiceLoadMetricDescription replicaCountMetric = new StatefulServiceLoadMetricDescription();
+            replicaCountMetric.Name = "ReplicaCount";
+            replicaCountMetric.PrimaryDefaultLoad = 1;
+            replicaCountMetric.SecondaryDefaultLoad = 1;
+            replicaCountMetric.Weight = ServiceLoadMetricWeight.Low;
+
+            StatefulServiceLoadMetricDescription totalCountMetric = new StatefulServiceLoadMetricDescription();
+            totalCountMetric.Name = "Count";
+            totalCountMetric.PrimaryDefaultLoad = 1;
+            totalCountMetric.SecondaryDefaultLoad = 1;
+            totalCountMetric.Weight = ServiceLoadMetricWeight.Low;
+
+            serviceDescription.Metrics.Add(primaryCountMetric);
+            serviceDescription.Metrics.Add(replicaCountMetric);
+            serviceDescription.Metrics.Add(totalCountMetric);
+
+            await fabricClient.ServiceManager.CreateServiceAsync(serviceDescription);
+
             try
             {
                 // The ServiceManifest.XML file defines one or more service type names.
