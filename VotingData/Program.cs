@@ -35,6 +35,11 @@ namespace VotingData
 
                 ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(VotingData).Name);
 
+                //Suspend Main thread for 60 seconds 
+                Thread.Sleep(60000);
+
+
+
                 //Debug.WriteLine("VotingData Prior to UpdateMetrics");
 
                 //Uri serviceName = new Uri("fabric:/Voting/VotingData");
