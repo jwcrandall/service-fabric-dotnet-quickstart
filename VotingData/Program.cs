@@ -7,7 +7,9 @@ namespace VotingData
 {
     using System;
     using System.Diagnostics;
+    using System.Fabric;
     using System.Fabric.Description;
+    using System.ServiceModel.Channels;
     using System.Threading;
     using Microsoft.ServiceFabric.Services.Runtime;
 
@@ -18,7 +20,41 @@ namespace VotingData
         /// </summary>
         private static void Main()
         {
-            StatefulServiceDescription serviceDescription = new StatefulServiceDescription();
+            try
+            {
+                // The ServiceManifest.XML file defines one or more service type names.
+                // Registering a service maps a service type name to a .NET type.
+                // When Service Fabric creates an instance of this service type,
+                // an instance of the class is created in this host process.
+
+                ServiceRuntime.RegisterServiceAsync(
+                    "VotingDataType",
+                    context => new VotingData(context)).GetAwaiter().GetResult();
+
+                Console.WriteLine("New Code Here");
+
+                //Uri serviceName = new Uri("fabric:/Voting/VotingData");
+                //UpdateMetrics(serviceName);
+
+                ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(VotingData).Name);
+
+
+                // Prevents this host process from terminating so services keeps running. 
+                Thread.Sleep(Timeout.Infinite);
+            }
+            catch (Exception e)
+            {
+                ServiceEventSource.Current.ServiceHostInitializationFailed(e.ToString());
+                throw;
+            }
+
+            
+        }
+
+        private static async void UpdateMetrics(Uri serviceName)
+        {
+            FabricClient fabricClient = new FabricClient();
+            StatefulServiceUpdateDescription serviceDescription = new StatefulServiceUpdateDescription();
 
             StatefulServiceLoadMetricDescription primaryCountMetric = new StatefulServiceLoadMetricDescription();
             primaryCountMetric.Name = "PrimaryCount";
@@ -42,29 +78,7 @@ namespace VotingData
             serviceDescription.Metrics.Add(replicaCountMetric);
             serviceDescription.Metrics.Add(totalCountMetric);
 
-            await fabricClient.ServiceManager.CreateServiceAsync(serviceDescription);
-
-            try
-            {
-                // The ServiceManifest.XML file defines one or more service type names.
-                // Registering a service maps a service type name to a .NET type.
-                // When Service Fabric creates an instance of this service type,
-                // an instance of the class is created in this host process.
-
-                ServiceRuntime.RegisterServiceAsync(
-                    "VotingDataType",
-                    context => new VotingData(context)).GetAwaiter().GetResult();
-
-                ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(VotingData).Name);
-
-                // Prevents this host process from terminating so services keeps running. 
-                Thread.Sleep(Timeout.Infinite);
-            }
-            catch (Exception e)
-            {
-                ServiceEventSource.Current.ServiceHostInitializationFailed(e.ToString());
-                throw;
-            }
+            await fabricClient.ServiceManager.UpdateServiceAsync(serviceName, serviceDescription);
         }
     }
 }
