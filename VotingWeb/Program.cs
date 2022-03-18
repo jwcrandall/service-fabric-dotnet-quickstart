@@ -19,6 +19,7 @@ namespace VotingWeb
         {
             try
             {
+                //Debug.WriteLine("VotingWeb Prior to ServiceRuntime.RegisterServiceAsync");
                 // The ServiceManifest.XML file defines one or more service type names.
                 // Registering a service maps a service type name to a .NET type.
                 // When Service Fabric creates an instance of this service type,
@@ -29,6 +30,8 @@ namespace VotingWeb
                     context => new VotingWeb(context)).GetAwaiter().GetResult();
 
                 ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(VotingWeb).Name);
+
+                // Debug.WriteLine("VotingData prior to Thread.Sleep(Timeout.Infinite);");
 
                 // Prevents this host process from terminating so services keeps running. 
                 Thread.Sleep(Timeout.Infinite);

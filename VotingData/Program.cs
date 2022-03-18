@@ -6,11 +6,13 @@
 namespace VotingData
 {
     using System;
+    using System.Collections.ObjectModel;
     using System.Diagnostics;
     using System.Fabric;
     using System.Fabric.Description;
     using System.ServiceModel.Channels;
     using System.Threading;
+    using Microsoft.ApplicationInsights;
     using Microsoft.ServiceFabric.Services.Runtime;
 
     internal static class Program
@@ -22,28 +24,18 @@ namespace VotingData
         {
             try
             {
-                //Debug.WriteLine("VotingData Prior to ServiceRuntime.RegisterServiceAsync");
-
                 // The ServiceManifest.XML file defines one or more service type names.
                 // Registering a service maps a service type name to a .NET type.
                 // When Service Fabric creates an instance of this service type,
                 // an instance of the class is created in this host process.
 
-                ServiceRuntime.RegisterServiceAsync(
-                    "VotingDataType",
-                    context => new VotingData(context)).GetAwaiter().GetResult();
+                ServiceRuntime.RegisterServiceAsync("VotingDataType", context => new VotingData(context)).GetAwaiter().GetResult();
 
                 ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(VotingData).Name);
 
-                //Suspend Main thread for 60 seconds 
-                Thread.Sleep(60000);
-
-
-
-                //Debug.WriteLine("VotingData Prior to UpdateMetrics");
-
-                //Uri serviceName = new Uri("fabric:/Voting/VotingData");
-                //UpdateMetrics(serviceName);
+                //ServiceEventSource.Current.ServiceMessage(serviceContext, "VotingData Prior to ServiceRuntime.RegisterServiceAsync");
+         
+                UpdateMetrics();
 
                 // Prevents this host process from terminating so services keeps running. 
                 Thread.Sleep(Timeout.Infinite);
@@ -57,10 +49,15 @@ namespace VotingData
             
         }
 
-        private static async void UpdateMetrics(Uri serviceName)
+        private static void UpdateMetrics()
         {
             FabricClient fabricClient = new FabricClient();
-            StatefulServiceUpdateDescription serviceDescription = new StatefulServiceUpdateDescription();
+
+            //StatefulServiceUpdateDescription serviceDescription = new StatefulServiceUpdateDescription();
+            
+            StatefulServiceLoadMetricDescription consequentialMetric = new StatefulServiceLoadMetricDescription();
+            consequentialMetric.Name = "ConsequentialMetric";
+            consequentialMetric.Weight = ServiceLoadMetricWeight.High;
 
             StatefulServiceLoadMetricDescription primaryCountMetric = new StatefulServiceLoadMetricDescription();
             primaryCountMetric.Name = "PrimaryCount";
@@ -80,11 +77,36 @@ namespace VotingData
             totalCountMetric.SecondaryDefaultLoad = 1;
             totalCountMetric.Weight = ServiceLoadMetricWeight.Low;
 
-            serviceDescription.Metrics.Add(primaryCountMetric);
-            serviceDescription.Metrics.Add(replicaCountMetric);
-            serviceDescription.Metrics.Add(totalCountMetric);
+            int pLoad = 1, sLoad = 1;
 
-            await fabricClient.ServiceManager.UpdateServiceAsync(serviceName, serviceDescription);
+            ServiceUpdateDescription serviceUpdateDescription = new StatefulServiceUpdateDescription();
+
+            while (true)
+            {
+                consequentialMetric.PrimaryDefaultLoad = pLoad++;
+                consequentialMetric.SecondaryDefaultLoad = sLoad++;
+
+                serviceUpdateDescription.Metrics = new CustomMetricDescription();
+
+                serviceUpdateDescription.Metrics.Add(consequentialMetric);
+                serviceUpdateDescription.Metrics.Add(primaryCountMetric);
+                serviceUpdateDescription.Metrics.Add(replicaCountMetric);
+                serviceUpdateDescription.Metrics.Add(totalCountMetric);
+
+                fabricClient.ServiceManager.UpdateServiceAsync(new Uri("fabric:/Voting/VotingData"), serviceUpdateDescription).Wait();
+                Thread.Sleep(10000); // sleep for 10 second
+            }
+
+            
         }
     }
+
+    internal class CustomMetricDescription : KeyedCollection<string, ServiceLoadMetricDescription>
+    {
+        protected override string GetKeyForItem(ServiceLoadMetricDescription item)
+        {
+            return item.Name;
+        }
+    }
+
 }
